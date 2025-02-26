@@ -4,41 +4,46 @@ import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
 const speechKey = "758a23a13b3f4233b91ab0b69af6af01"; // 🔹 Reemplaza con tu API Key de Azure Speech
 const speechRegion = "westus"; // 🔹 Reemplaza con la región de Azure Speech
-const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsIng1dCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsInR5cCI6IkpXVCJ9.eyJib3QiOiJlOTc2ZDZiMC1lMmNkLTFiM2QtNzBlZi0zZTEwZjlmZTVmMDciLCJzaXRlIjoiOFNIaERJaTRyNHlEckwxTlRuYnZHMTVtZjJ6NE1DOHpscTd0Wlp1SHhxek1QN3A4QjhnVEpRUUo5OUJCQUM0ZjFjTUFBcm9oQUFBQkFaQlM0UGRKIiwiY29udiI6Ikk5N3hCYk5meVFIRGlkY0xya2NtRHctYnIiLCJ1c2VyIjoiMmM3NDllZTgtODY2ZC00YmUzLWEwNWItNGVlZmNhYjI2NDdkIiwibmJmIjoxNzQwNTc3MTc2LCJleHAiOjE3NDA1ODA3NzYsImlzcyI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyIsImF1ZCI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyJ9.FD9U-1lJo2uOMQeg8VE4e3sr8bas67CiznuEIJbqPH62XH4QAKJnfh4QwPUeGwL-ghBYzqiNbOvqdBjjkDxZ7FA5VbowQWWFx4kfQYPTkxJHOxvsQlfPLvaUO78HDoozD9strsLQ7IaTrgvTmp8QU02Ss_IJCjwnKoJQcTUianOKWtg_5W-hsXgq75khhETm5ii34VpAhh7NBgGNm6MYZQb2l4VBIIfwclWsj8KWTF8mBzdlZofUjU40Y-pKVUbJ97-lmtU84ZlefvpOyEQe0XaXP8TNCZMmJ_aSvP2qlIwhzedDhBGj5D02PUKPkYL-10ZYpJd3ciU2Ug-2E-ZLyA";
-
+const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsIng1dCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsInR5cCI6IkpXVCJ9.eyJib3QiOiJlOTc2ZDZiMC1lMmNkLTFiM2QtNzBlZi0zZTEwZjlmZTVmMDciLCJzaXRlIjoiOFNIaERJaTRyNHlEckwxTlRuYnZHMTVtZjJ6NE1DOHpscTd0Wlp1SHhxek1QN3A4QjhnVEpRUUo5OUJCQUM0ZjFjTUFBcm9oQUFBQkFaQlM0UGRKIiwiY29udiI6IjUxczhJc3dkNG5WUXdJcEFvaEdnaS1iciIsInVzZXIiOiI0MmFjOWZjNi0wMDc5LTQwNTMtYTRiZC02NWQzODQ2OGE0NjEiLCJuYmYiOjE3NDA1ODI4MzEsImV4cCI6MTc0MDU4NjQzMSwiaXNzIjoiaHR0cHM6Ly9kaXJlY3RsaW5lLmJvdGZyYW1ld29yay5jb20vIiwiYXVkIjoiaHR0cHM6Ly9kaXJlY3RsaW5lLmJvdGZyYW1ld29yay5jb20vIn0.lokHCnG47PnMMw5Qzi-NJQTpmmiYSM9-HRM5c-KZzdwA_-pkUBar52H2zJLpbweslODaIjHDGzGS526wLEKMK7zIK-JXWtjYrgUTBghzgEIma9p5RuE3XaBTDzPcuurEkyfNN5c2fybmaHSQkdDLILeqbGjriRwtUw2p48pvHnlqgn5FxJcNOVj7_y6kh1NdvpyNJpyOAvGCN5ER3tQiUfTUYSPlseJ1n-z5fbmNZStVWfkuOPDwb1fxv0Y2TXFtGHQhZo5TOw5KFJ56xhQ_6A8QmdIbU5MeXlOAAnOqTcVxE01fce075TuHDxr67fXqatjp9D_P7xJt7GM5cL9W3w";
 
 const VoiceBot = () => {
     const [responseText, setResponseText] = useState("");
     const [isListening, setIsListening] = useState(false);
     const [logs, setLogs] = useState(["🟢 Iniciando VoiceBot..."]);
     const [conversationId, setConversationId] = useState(null);
-    const [watermark, setWatermark] = useState(null); // Para evitar recibir respuestas duplicadas
+    const [lastUserMessageId, setLastUserMessageId] = useState(null);
+    const [lastBotTimestamp, setLastBotTimestamp] = useState(""); // 🔹 Guarda la última respuesta del bot
 
     const logMessage = (msg) => {
         setLogs((prevLogs) => [...prevLogs, msg]);
         console.log(msg);
     };
 
-    /** 🔄 Iniciar una conversación con Copilot Studio */
     const startConversation = async () => {
-        if (conversationId) return conversationId; // Reutilizar conversación si ya existe
-
+        let existingConversationId = localStorage.getItem("conversationId");
+        if (existingConversationId) {
+            setConversationId(existingConversationId);
+            logMessage(`:flechas_en_sentido_antihorario: Usando conversación existente con ID: ${existingConversationId}`);
+            return existingConversationId;
+        }
         try {
-            logMessage("🔄 Iniciando nueva conversación con Copilot...");
+            logMessage(":flechas_en_sentido_antihorario: Iniciando nueva conversación con Copilot...");
             const response = await axios.post(
                 "https://directline.botframework.com/v3/directline/conversations",
                 {},
                 { headers: { Authorization: `Bearer ${directLineToken}` } }
             );
-
-            setConversationId(response.data.conversationId);
-            logMessage(`✅ Conversación iniciada con ID: ${response.data.conversationId}`);
-            return response.data.conversationId;
+            const newConversationId = response.data.conversationId;
+            setConversationId(newConversationId);
+            localStorage.setItem("conversationId", newConversationId); // Guardar en almacenamiento local
+            logMessage(`:marca_de_verificación_blanca: Conversación iniciada con ID: ${newConversationId}`);
+            return newConversationId;
         } catch (error) {
-            logMessage(`❌ Error iniciando conversación: ${error.message}`);
+            logMessage(`:x: Error iniciando conversación: ${error.message}`);
             return null;
         }
     };
+    
 
     /** 🎙️ Reconocimiento de voz con Azure Speech Services */
     const recognizeSpeech = async () => {
@@ -69,8 +74,7 @@ const VoiceBot = () => {
         }
     };
 
-    /** 📤 Enviar mensaje a Copilot Studio */
-    /** 📤 Enviar mensaje a Copilot Studio */
+    /** 📤 Enviar mensaje a Copilot */
     const sendMessageToCopilot = async (message) => {
         logMessage(`📤 Enviando a Copilot: ${message}`);
         if (!message.trim()) {
@@ -85,77 +89,67 @@ const VoiceBot = () => {
         }
 
         try {
-            // Enviar el mensaje a Copilot
-            await axios.post(
+            const response = await axios.post(
                 `https://directline.botframework.com/v3/directline/conversations/${convId}/activities`,
-                {
-                    type: "message",
-                    from: { id: "user1" },
-                    text: message
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${directLineToken}`,
-                        "Content-Type": "application/json"
-                    }
-                }
+                { type: "message", from: { id: "user1" }, text: message },
+                { headers: { Authorization: `Bearer ${directLineToken}`, "Content-Type": "application/json" } }
             );
 
-            logMessage("📩 Mensaje enviado con éxito. Esperando respuesta...");
-
-            // Espera 1 segundo antes de buscar la respuesta del bot
-            setTimeout(() => {
-                getBotResponse(convId);
-            }, 1000); // Ajusta el tiempo si es necesario
+            if (response.data.id) {
+                setLastUserMessageId(response.data.id);
+                logMessage(`📩 Mensaje enviado con éxito (ID: ${response.data.id}). Esperando respuesta...`);
+                await waitForBotResponse(convId);
+            }
         } catch (error) {
             logMessage(`❌ Error al enviar mensaje a Copilot: ${error.message}`);
         }
     };
 
-    /** ⏳ Obtener respuesta de Copilot Studio */
-    /** ⏳ Obtener respuesta de Copilot Studio */
-    /** ⏳ Obtener respuesta de Copilot Studio */
+    /** ⏳ Espera hasta recibir la respuesta correcta */
+    const waitForBotResponse = async (convId) => {
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < 10000) { // 10 segundos de espera máxima
+            const responseReceived = await getBotResponse(convId);
+            if (responseReceived) return;
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Espera 1s antes de volver a consultar
+        }
+
+        logMessage("⚠️ No se recibió respuesta del bot en 10 segundos.");
+    };
+
+    /** 📥 Obtener respuesta del bot */
     const getBotResponse = async (convId) => {
         try {
-            // Esperamos un poco para dar tiempo a que el bot procese la respuesta
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos de espera
-    
             const response = await axios.get(
                 `https://directline.botframework.com/v3/directline/conversations/${convId}/activities`,
                 { headers: { Authorization: `Bearer ${directLineToken}` } }
             );
-    
+
             const activities = response.data.activities;
-            if (activities.length > 0) {
-                const latestActivity = activities[activities.length - 1];
-                const gptFeedback = latestActivity.channelData?.["pva:gpt-feedback"];
-    
-                // Verificar que el estado de la respuesta sea "Answered"
-                if (gptFeedback && gptFeedback.gptAnswerState === "Answered") {
-                    // Obtener el textSummary desde la respuesta
-                    const botReply = gptFeedback.summarizationOpenAIResponse?.result?.textSummary;
-                    if (botReply) {
-                        console.log(`🤖 Respuesta de Copilot: ${botReply}`);
-                        setResponseText(botReply); // Mostrar respuesta en la UI
-                        speakResponse(botReply); // Reproducir la respuesta en voz
-                    } else {
-                        console.log("⚠️ No se encontró textSummary en la respuesta.");
-                    }
-                } else {
-                    console.log("⚠️ La respuesta aún no ha sido procesada o no ha llegado.");
+            const botMessages = activities.filter(
+                (act) => act.from.role === "bot" && act.replyToId === lastUserMessageId
+            );
+
+            if (botMessages.length > 0) {
+                const latestBotMessage = botMessages[botMessages.length - 1];
+
+                // 🔹 Evita respuestas repetidas
+                if (latestBotMessage.timestamp !== lastBotTimestamp) {
+                    setLastBotTimestamp(latestBotMessage.timestamp); // 🔄 Actualiza el timestamp
+                    logMessage(`🤖 Respuesta del bot: ${latestBotMessage.text}`);
+                    setResponseText(latestBotMessage.text);
+                    speakResponse(latestBotMessage.text);
+                    return true;
                 }
-            } else {
-                console.log("⚠️ No se recibió ninguna actividad.");
             }
+
+            return false;
         } catch (error) {
-            console.error(`❌ Error obteniendo respuesta de Copilot: ${error.message}`);
+            logMessage(`❌ Error obteniendo respuesta de Copilot: ${error.message}`);
+            return false;
         }
     };
-    
-    
-
-
-
 
     /** 🔊 Síntesis de voz con Azure Speech Services */
     const speakResponse = (text) => {

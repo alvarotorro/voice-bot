@@ -2,9 +2,13 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
-const speechKey = "758a23a13b3f4233b91ab0b69af6af01"; // 🔹 Replace with your Azure Speech API Key
-const speechRegion = "westus"; // 🔹 Replace with your Azure Speech region
-const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsIng1dCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsInR5cCI6IkpXVCJ9.eyJib3QiOiJlOTc2ZDZiMC1lMmNkLTFiM2QtNzBlZi0zZTEwZjlmZTVmMDciLCJzaXRlIjoiOFNIaERJaTRyNHlEckwxTlRuYnZHMTVtZjJ6NE1DOHpscTd0Wlp1SHhxek1QN3A4QjhnVEpRUUo5OUJCQUM0ZjFjTUFBcm9oQUFBQkFaQlM0UGRKIiwiY29udiI6IjUxczhJc3dkNG5WUXdJcEFvaEdnaS1iciIsInVzZXIiOiI0MmFjOWZjNi0wMDc5LTQwNTMtYTRiZC02NWQzODQ2OGE0NjEiLCJuYmYiOjE3NDA1ODI4MzEsImV4cCI6MTc0MDU4NjQzMSwiaXNzIjoiaHR0cHM6Ly9kaXJlY3RsaW5lLmJvdGZyYW1ld29yay5jb20vIiwiYXVkIjoiaHR0cHM6Ly9kaXJlY3RsaW5lLmJvdGZyYW1ld29yay5jb20vIn0.lokHCnG47PnMMw5Qzi-NJQTpmmiYSM9-HRM5c-KZzdwA_-pkUBar52H2zJLpbweslODaIjHDGzGS526wLEKMK7zIK-JXWtjYrgUTBghzgEIma9p5RuE3XaBTDzPcuurEkyfNN5c2fybmaHSQkdDLILeqbGjriRwtUw2p48pvHnlqgn5FxJcNOVj7_y6kh1NdvpyNJpyOAvGCN5ER3tQiUfTUYSPlseJ1n-z5fbmNZStVWfkuOPDwb1fxv0Y2TXFtGHQhZo5TOw5KFJ56xhQ_6A8QmdIbU5MeXlOAAnOqTcVxE01fce075TuHDxr67fXqatjp9D_P7xJt7GM5cL9W3w";
+// Move these to environment variables in a production app
+const speechKey = "758a23a13b3f4233b91ab0b69af6af01";
+const speechRegion = "westus";
+
+// ⚠️ You'll need to replace this with your refreshed Direct Line token
+// The current one is expired (causing 403 errors)
+const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsIng1dCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsInR5cCI6IkpXVCJ9.eyJib3QiOiJlOTc2ZDZiMC1lMmNkLTFiM2QtNzBlZi0zZTEwZjlmZTVmMDciLCJzaXRlIjoiOFNIaERJaTRyNHlEckwxTlRuYnZHMTVtZjJ6NE1DOHpscTd0Wlp1SHhxek1QN3A4QjhnVEpRUUo5OUJCQUM0ZjFjTUFBcm9oQUFBQkFaQlM0UGRKIiwiY29udiI6IkdPcW5qelRVdWZONXY1NmVLTE5Ebm4tYnIiLCJ1c2VyIjoiNDliM2U4MDMtNzZmNy00YTU1LWJiOTQtMmY5OTJhMzg1NzVjIiwibmJmIjoxNzQwNTg3MzQ3LCJleHAiOjE3NDA1OTA5NDcsImlzcyI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyIsImF1ZCI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyJ9.FT0xj1ZB47hHXsjO_RhEZtNmwoqPr1MtL0aewBicYk13qQn4gnPoMUVe06gvudQl3k8gGl5dnnmb-I9d8eD1lgptQ76CIq2BvlaRoJxR6VNgGpinx6zINupPFDkd-UzMuU3Sh_oRZc-wxwKKF5FdKGhgXuKGxJgk2repIuRnjV7e0eHq1zaitQ7zm0K2vATRZ23QToL12NroW9wEvIaw6DYws7ovahLEZniCHJeETl4M5OB61dtrmye2FtMBvjSLXHQklncXJO-naH8gy6ib2iu2sNWrO1KUGYw3sFDdCaSNvZmkUDMmxkI_YSO-ttEvCpVW78geNRlEOv9Nh84Qvw";
 
 const VoiceBot = () => {
     const [responseText, setResponseText] = useState("");
@@ -12,15 +16,43 @@ const VoiceBot = () => {
     const [logs, setLogs] = useState(["🟢 Starting VoiceBot..."]);
     const [conversationId, setConversationId] = useState(null);
     const [lastUserMessageId, setLastUserMessageId] = useState(null);
-    const [lastBotTimestamp, setLastBotTimestamp] = useState(""); // 🔹 Store the last bot response timestamp
+    const [lastBotTimestamp, setLastBotTimestamp] = useState(""); 
+    const [processedResponses, setProcessedResponses] = useState(new Set());
+    const [tokenError, setTokenError] = useState(false);
 
     const logMessage = (msg) => {
         setLogs((prevLogs) => [...prevLogs, msg]);
         console.log(msg);
     };
 
+    // Check if token is valid on component mount
+    useEffect(() => {
+        verifyToken();
+    }, []);
+
+    const verifyToken = async () => {
+        try {
+            await axios.post(
+                "https://directline.botframework.com/v3/directline/conversations",
+                {},
+                { headers: { Authorization: `Bearer ${directLineToken}` } }
+            );
+            setTokenError(false);
+        } catch (error) {
+            if (error.response && error.response.status === 403) {
+                setTokenError(true);
+                logMessage("❌ Direct Line token has expired. Please refresh the token.");
+            }
+        }
+    };
+
     const startConversation = async () => {
-        let existingConversationId = localStorage.getItem("conversationId");
+        if (tokenError) {
+            logMessage("❌ Cannot start conversation with expired token.");
+            return null;
+        }
+        
+        let existingConversationId = "GOqnjzTUufN5v56eKLNDnn-br"
         if (existingConversationId) {
             setConversationId(existingConversationId);
             logMessage(`:counterclockwise_arrows: Using existing conversation with ID: ${existingConversationId}`);
@@ -39,14 +71,23 @@ const VoiceBot = () => {
             logMessage(`:white_check_mark: Conversation started with ID: ${newConversationId}`);
             return newConversationId;
         } catch (error) {
-            logMessage(`:x: Error starting conversation: ${error.message}`);
+            if (error.response && error.response.status === 403) {
+                setTokenError(true);
+                logMessage("❌ Direct Line token has expired. Please refresh the token.");
+            } else {
+                logMessage(`:x: Error starting conversation: ${error.message}`);
+            }
             return null;
         }
     };
     
-
     /** 🎙️ Speech Recognition with Azure Speech Services */
     const recognizeSpeech = async () => {
+        if (tokenError) {
+            logMessage("❌ Cannot listen with expired token. Please refresh the token first.");
+            return;
+        }
+        
         setIsListening(true);
         logMessage("🎤 Listening...");
 
@@ -76,6 +117,11 @@ const VoiceBot = () => {
 
     /** 📤 Send message to Copilot */
     const sendMessageToCopilot = async (message) => {
+        if (tokenError) {
+            logMessage("❌ Cannot send message with expired token.");
+            return;
+        }
+        
         logMessage(`📤 Sending to Copilot: ${message}`);
         if (!message.trim()) {
             logMessage("⚠️ Empty message. Not sending.");
@@ -98,28 +144,47 @@ const VoiceBot = () => {
             if (response.data.id) {
                 setLastUserMessageId(response.data.id);
                 logMessage(`📩 Message sent successfully (ID: ${response.data.id}). Waiting for response...`);
-                await waitForBotResponse(convId);
+                
+                // Clear already processed responses
+                setProcessedResponses(new Set());
+                
+                await waitForBotResponse(convId, response.data.id);
             }
         } catch (error) {
-            logMessage(`❌ Error sending message to Copilot: ${error.message}`);
+            if (error.response && error.response.status === 403) {
+                setTokenError(true);
+                logMessage("❌ Direct Line token has expired. Please refresh the token.");
+            } else {
+                logMessage(`❌ Error sending message to Copilot: ${error.message}`);
+            }
         }
     };
 
     /** ⏳ Wait for the correct response */
-    const waitForBotResponse = async (convId) => {
-        const startTime = Date.now();
+    const waitForBotResponse = async (convId, messageId) => {
+        if (tokenError) return;
         
-        while (Date.now() - startTime < 10000) { // 10 seconds maximum wait time
-            const responseReceived = await getBotResponse(convId);
-            if (responseReceived) return;
-            await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s before rechecking
+        const startTime = Date.now();
+        let retryCount = 0;
+        const maxRetries = 20; // More retries with shorter intervals
+        
+        while (retryCount < maxRetries) {
+            const responseReceived = await getBotResponse(convId, messageId);
+            if (responseReceived || tokenError) return;
+            
+            // Exponential backoff with a max of 1s
+            const delay = Math.min(500 * Math.pow(1.2, retryCount), 1000); 
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            retryCount++;
         }
 
-        logMessage("⚠️ No response received from the bot in 10 seconds.");
+        logMessage("⚠️ No response received from the bot after multiple attempts.");
     };
 
     /** 📥 Get bot response */
-    const getBotResponse = async (convId) => {
+    const getBotResponse = async (convId, messageId) => {
+        if (tokenError) return false;
+        
         try {
             const response = await axios.get(
                 `https://directline.botframework.com/v3/directline/conversations/${convId}/activities`,
@@ -127,16 +192,20 @@ const VoiceBot = () => {
             );
 
             const activities = response.data.activities;
+            
+            // Find bot messages that are responses to the CURRENT message
             const botMessages = activities.filter(
-                (act) => act.from.role === "bot" && act.replyToId === lastUserMessageId
+                (act) => act.from.role === "bot" && act.replyToId === messageId
             );
 
             if (botMessages.length > 0) {
                 const latestBotMessage = botMessages[botMessages.length - 1];
-
-                // 🔹 Avoid duplicate responses
-                if (latestBotMessage.timestamp !== lastBotTimestamp) {
-                    setLastBotTimestamp(latestBotMessage.timestamp); // 🔄 Update timestamp
+                
+                // Check if we've already processed this specific message
+                if (!processedResponses.has(latestBotMessage.id)) {
+                    // Mark this response as processed
+                    setProcessedResponses(prev => new Set([...prev, latestBotMessage.id]));
+                    
                     logMessage(`🤖 Bot response: ${latestBotMessage.text}`);
                     setResponseText(latestBotMessage.text);
                     speakResponse(latestBotMessage.text);
@@ -146,7 +215,12 @@ const VoiceBot = () => {
 
             return false;
         } catch (error) {
-            logMessage(`❌ Error getting response from Copilot: ${error.message}`);
+            if (error.response && error.response.status === 403) {
+                setTokenError(true);
+                logMessage("❌ Direct Line token has expired. Please refresh the token.");
+            } else {
+                logMessage(`❌ Error getting response from Copilot: ${error.message}`);
+            }
             return false;
         }
     };
@@ -182,19 +256,50 @@ const VoiceBot = () => {
         }
     };
 
+    // Clear conversation button
+    const clearConversation = () => {
+        localStorage.removeItem("conversationId");
+        setConversationId(null);
+        setResponseText("");
+        setLogs(["🟢 VoiceBot reset. Conversation cleared."]);
+        setProcessedResponses(new Set());
+        logMessage("🔄 Ready for a new conversation.");
+    };
+
     return (
         <div style={{ textAlign: "center", marginTop: "20px", padding: "20px", border: "1px solid #ccc", borderRadius: "10px" }}>
             <h1>🎙️ VoiceBot with Azure Speech & Copilot Studio</h1>
-            <button 
-                onClick={recognizeSpeech} 
-                disabled={isListening} 
-                style={{ padding: "10px", fontSize: "16px", cursor: "pointer" }}
-            >
-                {isListening ? "🎤 Listening..." : "🎙️ Talk to Copilot"}
-            </button>
+            
+            {tokenError && (
+                <div style={{ padding: "15px", backgroundColor: "#ffecec", color: "#d8000c", borderRadius: "5px", margin: "15px 0" }}>
+                    <strong>⚠️ Token Error:</strong> Your Direct Line token has expired. Please generate a new token and update it in the code.
+                </div>
+            )}
+            
+            <div style={{ margin: "20px 0" }}>
+                <button 
+                    onClick={recognizeSpeech} 
+                    disabled={isListening || tokenError} 
+                    style={{ 
+                        padding: "10px", 
+                        fontSize: "16px", 
+                        cursor: tokenError ? "not-allowed" : "pointer", 
+                        marginRight: "10px",
+                        opacity: tokenError ? 0.6 : 1
+                    }}
+                >
+                    {isListening ? "🎤 Listening..." : "🎙️ Talk to Copilot"}
+                </button>
+                <button 
+                    onClick={clearConversation}
+                    style={{ padding: "10px", fontSize: "16px", cursor: "pointer", backgroundColor: "#f8f8f8" }}
+                >
+                    🔄 Reset Conversation
+                </button>
+            </div>
 
             <h3>📝 Bot's Response:</h3>
-            <p style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}>
+            <p style={{ fontSize: "18px", fontWeight: "bold", color: "#333", padding: "10px", border: "1px solid #eee", borderRadius: "5px", background: "#f9f9f9" }}>
                 {responseText || "No response yet..."}
             </p>
 

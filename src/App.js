@@ -3,12 +3,12 @@ import axios from "axios";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
 // Move these to environment variables in a production app
-const speechKey = "758a23a13b3f4233b91ab0b69af6af01";
+const speechKey = "YOUR_SPEECH_KEY";
 const speechRegion = "westus";
 
 // ⚠️ You'll need to replace this with your refreshed Direct Line token
 // The current one is expired (causing 403 errors)
-const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsIng1dCI6IkpHd3R5VFZ6S1Z3ZjVIT0U5YlpqWmNFdjEtbyIsInR5cCI6IkpXVCJ9.eyJib3QiOiJlOTc2ZDZiMC1lMmNkLTFiM2QtNzBlZi0zZTEwZjlmZTVmMDciLCJzaXRlIjoiOFNIaERJaTRyNHlEckwxTlRuYnZHMTVtZjJ6NE1DOHpscTd0Wlp1SHhxek1QN3A4QjhnVEpRUUo5OUJCQUM0ZjFjTUFBcm9oQUFBQkFaQlM0UGRKIiwiY29udiI6IkdPcW5qelRVdWZONXY1NmVLTE5Ebm4tYnIiLCJ1c2VyIjoiNDliM2U4MDMtNzZmNy00YTU1LWJiOTQtMmY5OTJhMzg1NzVjIiwibmJmIjoxNzQwNTg3MzQ3LCJleHAiOjE3NDA1OTA5NDcsImlzcyI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyIsImF1ZCI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyJ9.FT0xj1ZB47hHXsjO_RhEZtNmwoqPr1MtL0aewBicYk13qQn4gnPoMUVe06gvudQl3k8gGl5dnnmb-I9d8eD1lgptQ76CIq2BvlaRoJxR6VNgGpinx6zINupPFDkd-UzMuU3Sh_oRZc-wxwKKF5FdKGhgXuKGxJgk2repIuRnjV7e0eHq1zaitQ7zm0K2vATRZ23QToL12NroW9wEvIaw6DYws7ovahLEZniCHJeETl4M5OB61dtrmye2FtMBvjSLXHQklncXJO-naH8gy6ib2iu2sNWrO1KUGYw3sFDdCaSNvZmkUDMmxkI_YSO-ttEvCpVW78geNRlEOv9Nh84Qvw";
+const directLineToken = "   ";
 
 const VoiceBot = () => {
     const [responseText, setResponseText] = useState("");
@@ -19,6 +19,8 @@ const VoiceBot = () => {
     const [lastBotTimestamp, setLastBotTimestamp] = useState(""); 
     const [processedResponses, setProcessedResponses] = useState(new Set());
     const [tokenError, setTokenError] = useState(false);
+    const [recognizer, setRecognizer] = useState(null);
+
 
     const logMessage = (msg) => {
         setLogs((prevLogs) => [...prevLogs, msg]);
@@ -87,33 +89,52 @@ const VoiceBot = () => {
             logMessage("❌ Cannot listen with expired token. Please refresh the token first.");
             return;
         }
-        
+    
+        // Stop the current recognition if there's an active recognizer
+        if (recognizer) {
+            recognizer.stopContinuousRecognitionAsync(
+                () => {
+                    logMessage("🛑 Stopped previous recognition.");
+                    recognizer.close();  // Properly close the recognizer
+                },
+                (error) => {
+                    logMessage(`❌ Error stopping recognition: ${error.message}`);
+                    recognizer.close();  // Ensure recognizer is closed even in error
+                }
+            );
+        }
+    
         setIsListening(true);
         logMessage("🎤 Listening...");
-
+    
         try {
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
             speechConfig.speechRecognitionLanguage = "en-US";
-
-            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
-            recognizer.recognizeOnceAsync(async (result) => {
+    
+            const newRecognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+            setRecognizer(newRecognizer); // Update the recognizer reference
+    
+            newRecognizer.recognizeOnceAsync(async (result) => {
                 setIsListening(false);
-
+    
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     logMessage(`✅ Recognized text: ${result.text}`);
                     await sendMessageToCopilot(result.text);
                 } else {
                     logMessage("⚠️ No speech recognized.");
                 }
-                recognizer.close();
+    
+                // Close the new recognizer after it finishes
+                newRecognizer.close();
             });
         } catch (error) {
             setIsListening(false);
             logMessage(`❌ Speech recognition error: ${error.message}`);
         }
     };
+    
+    
 
     /** 📤 Send message to Copilot */
     const sendMessageToCopilot = async (message) => {

@@ -3,12 +3,12 @@ import axios from "axios";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
 // Move these to environment variables in a production app
-const speechKey = "YOUR_SPEECH_KEY";
+const speechKey = "758a23a13b3f4233b91ab0b69af6af01";
 const speechRegion = "westus";
 
 // ⚠️ You'll need to replace this with your refreshed Direct Line token
 // The current one is expired (causing 403 errors)
-const directLineToken = "   ";
+const directLineToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkxXMTJxbHBaYl9Xd09FUklGclhTY0VqOEJDUSIsIng1dCI6IkxXMTJxbHBaYl9Xd09FUklGclhTY0VqOEJDUSIsInR5cCI6IkpXVCJ9.eyJib3QiOiI5NjYyNmI0Ni1jMzQ1LTUwZmYtMTg0OS0xYjBjNWY3NzUxNTgiLCJzaXRlIjoiNk9zMzBia2ttM3duYjFMRzNrWk1KdW9BbU00M2pHT1NRTE8xdWRPNkxLQ2MxSjhpemtzVkpRUUo5OUJCQUM1VDdVMkFBcm9oQUFBQkFaQlMxZE5XIiwiY29udiI6IkFOeUlxREpEMmxBTDMxMGRYVVFwMjQtYnIiLCJ1c2VyIjoiZDE0OWY1NDktNjAyMC00OTAzLWFjNjEtNzhhM2FkNzY2ZDU5IiwibmJmIjoxNzQwNjcwMTYxLCJleHAiOjE3NDA2NzM3NjEsImlzcyI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyIsImF1ZCI6Imh0dHBzOi8vZGlyZWN0bGluZS5ib3RmcmFtZXdvcmsuY29tLyJ9.oV4yFAMPVWO00q5utiDSNkq2BhU5ng9w9RyAoOWTxA3hZA6s8cG_TFdWWpL-y9UKtKdiQnjy3CRm__UUCHXyRpUKfd-r5SFmFkoVVz4A7a6qv8Hx_MpQ4Ee6DlP1Tpy5xsaJrI5dM8xbBeWEJVkcyGYP59CwCqlurBrogxzRNmHmFrHsJItk8WKRXyKumF7s3_wHyd8Zgnr05ehlJHYxy_OvpjX0RzwyWvUDOuP4jB7PUJJb3cSv0l0PjCqIdMVeT9AjM9ofM9pdJVFdGkWhhu0Amx-jgyzQD2Jto4n7FdOb9S6UO4Zpny-qHgO74gANBAXarojAvGbq2lGHVPwf3A";
 
 const VoiceBot = () => {
     const [responseText, setResponseText] = useState("");
@@ -19,8 +19,6 @@ const VoiceBot = () => {
     const [lastBotTimestamp, setLastBotTimestamp] = useState(""); 
     const [processedResponses, setProcessedResponses] = useState(new Set());
     const [tokenError, setTokenError] = useState(false);
-    const [recognizer, setRecognizer] = useState(null);
-
 
     const logMessage = (msg) => {
         setLogs((prevLogs) => [...prevLogs, msg]);
@@ -54,7 +52,7 @@ const VoiceBot = () => {
             return null;
         }
         
-        let existingConversationId = "GOqnjzTUufN5v56eKLNDnn-br"
+        let existingConversationId = "ANyIqDJD2lAL310dXUQp24-br"
         if (existingConversationId) {
             setConversationId(existingConversationId);
             logMessage(`:counterclockwise_arrows: Using existing conversation with ID: ${existingConversationId}`);
@@ -89,52 +87,33 @@ const VoiceBot = () => {
             logMessage("❌ Cannot listen with expired token. Please refresh the token first.");
             return;
         }
-    
-        // Stop the current recognition if there's an active recognizer
-        if (recognizer) {
-            recognizer.stopContinuousRecognitionAsync(
-                () => {
-                    logMessage("🛑 Stopped previous recognition.");
-                    recognizer.close();  // Properly close the recognizer
-                },
-                (error) => {
-                    logMessage(`❌ Error stopping recognition: ${error.message}`);
-                    recognizer.close();  // Ensure recognizer is closed even in error
-                }
-            );
-        }
-    
+        
         setIsListening(true);
         logMessage("🎤 Listening...");
-    
+
         try {
             const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
             const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, speechRegion);
             speechConfig.speechRecognitionLanguage = "en-US";
-    
-            const newRecognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-            setRecognizer(newRecognizer); // Update the recognizer reference
-    
-            newRecognizer.recognizeOnceAsync(async (result) => {
+
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+            recognizer.recognizeOnceAsync(async (result) => {
                 setIsListening(false);
-    
+
                 if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
                     logMessage(`✅ Recognized text: ${result.text}`);
                     await sendMessageToCopilot(result.text);
                 } else {
                     logMessage("⚠️ No speech recognized.");
                 }
-    
-                // Close the new recognizer after it finishes
-                newRecognizer.close();
+                recognizer.close();
             });
         } catch (error) {
             setIsListening(false);
             logMessage(`❌ Speech recognition error: ${error.message}`);
         }
     };
-    
-    
 
     /** 📤 Send message to Copilot */
     const sendMessageToCopilot = async (message) => {
@@ -202,7 +181,6 @@ const VoiceBot = () => {
         logMessage("⚠️ No response received from the bot after multiple attempts.");
     };
 
-    /** 📥 Get bot response */
     const getBotResponse = async (convId, messageId) => {
         if (tokenError) return false;
         
@@ -211,20 +189,20 @@ const VoiceBot = () => {
                 `https://directline.botframework.com/v3/directline/conversations/${convId}/activities`,
                 { headers: { Authorization: `Bearer ${directLineToken}` } }
             );
-
+    
             const activities = response.data.activities;
             
-            // Find bot messages that are responses to the CURRENT message
+            // Filtrar solo mensajes de tipo "message" del bot
             const botMessages = activities.filter(
-                (act) => act.from.role === "bot" && act.replyToId === messageId
+                (act) => act.type === "message" && act.from.role === "bot" && act.replyToId === messageId
             );
-
+    
             if (botMessages.length > 0) {
-                const latestBotMessage = botMessages[botMessages.length - 1];
+                const latestBotMessage = botMessages.pop(); // Obtener el último mensaje
                 
-                // Check if we've already processed this specific message
+                // Verificar si ya se procesó este mensaje
                 if (!processedResponses.has(latestBotMessage.id)) {
-                    // Mark this response as processed
+                    // Marcar el mensaje como procesado
                     setProcessedResponses(prev => new Set([...prev, latestBotMessage.id]));
                     
                     logMessage(`🤖 Bot response: ${latestBotMessage.text}`);
@@ -233,7 +211,7 @@ const VoiceBot = () => {
                     return true;
                 }
             }
-
+    
             return false;
         } catch (error) {
             if (error.response && error.response.status === 403) {
